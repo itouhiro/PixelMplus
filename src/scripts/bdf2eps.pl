@@ -1,8 +1,7 @@
 #!/usr/bin/perl
-# vim:set ts=8 sts=4 sw=4 tw=0:
-#
-# Last Change: 24-Jan-2005.
-# Maintainer:  MURAOKA Taro <koron@tka.att.ne.jp>
+# Time-stamp: <Jun 02 2013>
+# Created:  MURAOKA Taro <koron@tka.att.ne.jp>
+# Modified: itouhiro
 
 use strict;
 use lib "scripts";
@@ -24,9 +23,10 @@ my @files;
 my %generated;
 
 my ($WIDTH, $HEIGHT);
-$config::FONT_BASENAME = 'mplus_skeleton';
-$config::FONT_WEIGHT = 'middle';
+$config::FONT_BASENAME = 'PixelMplus';
+$config::FONT_WEIGHT = 'Regular';
 $config::FONT_COPYRIGHT = "Copyright (C) $YEAR M+ Font Project";
+$config::FONT_VERSION = sprintf("%04d.%02d%02d", $YEAR, $MONTH, $DAY);
 
 # Parse arguments
 for (my $i = 0; $i < @ARGV; ++$i) {
@@ -63,6 +63,7 @@ for (my $i = 0; $i < @ARGV; ++$i) {
 
 if (not defined $config::FONT_NAME) {
     $config::FONT_NAME = sprintf("%s-%s", $config::FONT_BASENAME, $config::FONT_WEIGHT);
+    $config::FULL_NAME = sprintf("%s %s", $config::FONT_BASENAME, $config::FONT_WEIGHT);
 }
 $config::FONT_OUTPUTFILE = sprintf("%s.sfd", $config::FONT_NAME);
 
@@ -74,7 +75,9 @@ my $pes = new PESGenerator(
     -basename => $config::FONT_BASENAME,
     -weight => $config::FONT_WEIGHT,
     -fontname => $config::FONT_NAME,
+    -fullname => $config::FULL_NAME,
     -copyright => $config::FONT_COPYRIGHT,
+    -version => $config::FONT_VERSION,
     #-input_sfd => $input_sfd,
     -output_sfd => $config::FONT_OUTPUTFILE,
     -offset => [0, -200],
@@ -118,6 +121,8 @@ sub check_header
 		$encode = "JISX0201";
 	    } elsif ($encode =~ m/jisx0208/i) {
 		$encode = "JISX0208";
+	    } elsif ($encode =~ m/jisx0213/i) {
+		$encode = "JISX0213";
 	    }
 	    $head->{encode} = $encode;
 	}

@@ -1,9 +1,9 @@
-# vim:set ts=8 sts=4 sw=4 tw=0:
+# Time-stamp: <Jun 02 2013>
 #
 # PfaEdit (fontforge) Script Generator
 #
-# Last Change: 23-Jan-2005.
-# Maintainer:  MURAOKA Taro <koron@tka.att.ne.jp>
+# Created:  MURAOKA Taro <koron@tka.att.ne.jp>
+# Modified: itouhiro
 
 package PESGenerator;
 
@@ -22,8 +22,10 @@ sub new
     my $this = bless {
 	basename => $param{'-basename'},
 	fontname => $param{'-fontname'},
+	fullname => $param{'-fullname'},
 	weight => $param{'-weight'},
 	copyright => $param{'-copyright'},
+	version => $param{'-version'},
 	input_sfd => $param{'-input_sfd'},
 	output_sfd => $param{'-output_sfd'},
 	scratch_build => ($param{'-input_sfd'} ne $param{'-output_sfd'}),
@@ -68,20 +70,41 @@ Reencode("iso10646-1")
 SetCharCnt(65536)
 __EOB__
     }
-    print OUT <<"__EOB__";
-# Set panose (workaround)
-panose = Array(10)
-panose[0] = 2; panose[1] = 0; panose[2] = 6; panose[3] = 9; panose[4] = 6
-panose[5] = 0; panose[6] = 0; panose[7] = 0; panose[8] = 0; panose[9] = 0
-i = 0; while (i < 10); SetPanose(i, panose[i]); ++i; endloop
-__EOB__
     # Header for scratch
     if ($this->{scratch_build}) {
 	print OUT <<"__EOB__";
 # For scratch build
-SetFontNames("$this->{basename}", "$this->{fontname}", "$this->{fontname}", "$this->{weight}", "$this->{copyright}")
+SetFontNames("$this->{fontname}", "$this->{basename}", "$this->{fullname}", "$this->{weight}", "$this->{copyright}", "$this->{version}")
 __EOB__
     }
+    # Set panose (workaround)
+    print OUT <<"__EOB__";
+panose = Array(10);
+panose[0] = 2;  #bFamilyType
+panose[1] = 11; #bSerifStyle
+__EOB__
+    if ($this->{weight} =~ /ld$/){
+        # Bold
+        # PANOSE: see https://developer.apple.com/fonts/TTRefMan/RM06/Chap6OS2.html
+        # SetOS2Value: see https://www.microsoft.com/typography/otspec/os2.htm , readttfos2metrics() in http://fontforge.cvs.sourceforge.net/viewvc/fontforge/fontforge/fontforge/parsettf.c
+        print OUT qq|panose[2] = 7; SetOS2Value("Weight",700); |;
+    }else{
+        # Regular(Book)
+        print OUT qq|panose[2] = 5; SetOS2Value("Weight",400);|;
+    }
+    print OUT <<"__EOB__";
+panose[3] = 9; #bProportion
+panose[4] = 2; #bContrast
+panose[5] = 2; #bStrokeVariation
+panose[6] = 3; #bArmStyle
+panose[7] = 2; #bLetterform
+panose[8] = 2; #bMidline
+panose[9] = 7; #bXHeight
+i = 0; while (i < 10); SetPanose(i, panose[i]); ++i; endloop
+SetOS2Value("IBMFamily", 8 * 256 + 9); #monospace
+SetOS2Value("TypoLineGap", 0);
+SetOS2Value("HHeadLineGap", 0);
+__EOB__
     # Glyphs
     print OUT "# Output glyphs\n";
     for my $eps_file (@{$this->{eps_files}}) {
@@ -107,8 +130,11 @@ __EOB__
 	printf OUT "SetWidth(%d)\n", $width;
     }
     # Footer
+    $output_ttf = $this->{output_sfd};
+    $output_ttf =~ s/\.sfd$/.ttf/;
     print OUT <<"__EOB__";
 # Save SFD and quit
+Generate("$output_ttf", "", 0x84)
 Save("$this->{output_sfd}")
 Quit()
 __EOB__
